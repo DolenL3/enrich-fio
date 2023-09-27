@@ -2,8 +2,6 @@ package kafka
 
 import (
 	"context"
-	"enrich-fio/internal/config"
-	"log"
 
 	"github.com/pkg/errors"
 	kafkago "github.com/segmentio/kafka-go"
@@ -15,9 +13,9 @@ type Reader struct {
 }
 
 // NewKafkaReader returns reader implementation.
-func NewKafkaReader(topic string) *Reader {
+func NewKafkaReader(topic string, host string) *Reader {
 	reader := kafkago.NewReader(kafkago.ReaderConfig{
-		Brokers: []string{config.Conf.KafkaHost},
+		Brokers: []string{host},
 		Topic:   topic,
 		GroupID: "group",
 	})
@@ -32,7 +30,7 @@ func (k *Reader) FetchMessage(ctx context.Context, invalidMessages chan<- kafkag
 	for {
 		message, err := k.Reader.FetchMessage(ctx)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "Reader.FetchMessage")
 		}
 
 		if !validMessage(&message) {
@@ -40,14 +38,12 @@ func (k *Reader) FetchMessage(ctx context.Context, invalidMessages chan<- kafkag
 			case <-ctx.Done():
 				return ctx.Err()
 			case invalidMessages <- message:
-				log.Println(message.WriterData)
 			}
 		} else {
 			select {
 			case <-ctx.Done():
 				return ctx.Err()
 			case messages <- message:
-				log.Printf("message is valid: %v \n", string(message.Value))
 			}
 		}
 	}
@@ -63,7 +59,6 @@ func (k *Reader) CommitMessages(ctx context.Context, invalidMessageCommitChan <-
 			if err != nil {
 				return errors.Wrap(err, "Reader.CommitMessages")
 			}
-			log.Printf("committed msg: %v \n", string(msg.Value))
 		}
 	}
 }

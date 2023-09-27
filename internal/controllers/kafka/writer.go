@@ -2,7 +2,6 @@ package kafka
 
 import (
 	"context"
-	"enrich-fio/internal/config"
 
 	kafkago "github.com/segmentio/kafka-go"
 )
@@ -13,9 +12,9 @@ type Writer struct {
 }
 
 // NewKafkaWriter returns writer implementation.
-func NewKafkaWriter(topic string) *Writer {
+func NewKafkaWriter(topic string, host string) *Writer {
 	writer := &kafkago.Writer{
-		Addr:  kafkago.TCP(config.Conf.KafkaHost),
+		Addr:  kafkago.TCP(host),
 		Topic: topic,
 	}
 	return &Writer{
